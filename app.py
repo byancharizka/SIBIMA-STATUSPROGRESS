@@ -870,74 +870,7 @@ def main():
     #df_do_final_real["net_price_unit"] = df_do_final_real["item_price"] - df_do_final_real["disc_per_unit"] + df_do_final_real["tax_unit"]
     #df_do_final_real["net_price_unit"] = df_do_final_real["item_price"] - df_do_final_real["disc_per_unit"]
     #df_do_final_real["total_do_row"] = df_do_final_real["item_quantity"] * df_do_final_real["net_price_unit"]
-    total_do = df_do_final_real["total_do_row"].sum()
 
-    total_pr_count = safe_unique_count(df_pr_final_real, "transaction_number")
-    total_pr_balance_count = safe_unique_count(df_pr_f, "No. PR")
-    total_pr_rows = len(df_pr_final_real)
-    total_pr_balance_rows = len(df_pr_f)
-    total_do_count = safe_unique_count(df_do_final_real, "transaction_number")
-    total_do_balance_count = safe_unique_count(df_do_f, "No. DO")
-    total_do_rows = len(df_do_final_real)
-    total_do_balance_rows = len(df_do_f)
-    #total_npr_count = safe_unique_count(df_npr_f, "No. Transaksi")
-    #total_npr_rows = len(df_npr_f)
-
-    avg_nominal_do = safe_mean(df_do_f, "Nominal")
-
-    top_pic_pr = get_top_pic(df_pr_f, "PIC Procurement", "No. PR")
-    top_pic_do = get_top_pic(df_do_f, "PIC Procurement", "No. DO")
-    #top_pic_pur = get_top_pic(df_pur_f, "PIC", "No. PUR")
-
-    # ---------- LAYOUT ----------
-    col_kiri, col_tengah, col_kanan = st.columns([1, 1, 1], gap="small")
-    # 🔹 Filter hanya PR yang sudah punya tanggal inprogress atau complete
-    #Aging PR
-    #df_pr_final_valid = df_pr_final_real[
-    #df_pr_final_real["date_inprogress"].notna() | df_pr_final_real["date_complete"].notna()
-    #].copy()
-    #PR
-    df_pr_final_valid = df_pr_final_real[
-    df_pr_final_real["Status"].isin(["Approved", "In Progress", "Complete"])
-    ].copy()
-    df_pr_final_valid = apply_search_filter(df_pr_final_valid, search_number, search_status, search_pic)
-
-    #Aging PR Balance
-    # Filter PR Balance hanya untuk status aktif (exclude Complete & Draft)
-    df_pr_valid = df_pr_final_f[
-    ~df_pr_final_f["Status"].isin(["Complete", "Draft"])
-    ].copy()
-    df_pr_valid = apply_search_filter(df_pr_valid, search_number, search_status, search_pic)
-
-
-    #DO
-    # 🔹 Filter hanya DO yang sudah punya tanggal inprogress atau complete
-    #Aging DO
-    df_do_final_valid = df_do_final_real[
-    df_do_final_real["Status"].isin(["Approved", "In Progress", "Complete"])
-    ].copy()
-    df_do_final_valid = apply_search_filter(df_do_final_valid, search_number, search_status, search_pic)
-
-    #Aging DO Balance
-    # Filter DO Balance hanya untuk status aktif (exclude Complete & Draft)
-    df_do_valid = df_do_final_f[
-    ~df_do_final_f["Status"].isin(["Complete", "Draft"])
-    ].copy()
-    df_do_valid = apply_search_filter(df_do_valid, search_number, search_status, search_pic)
-
-
-    # Lanjutkan proses aging hanya untuk DO yang valid
-    #Aging DO
-    df_do_final_valid = calculate_aging(df_do_final_valid, "transaction_date", prefer="approved")
-    df_do_final_valid = categorize_aging(df_do_final_valid)
-    #Aging DO Balance
-    df_do_valid = calculate_aging(df_do_valid, "transaction_date", prefer="approved")
-    df_do_valid = categorize_aging(df_do_valid)
-
-    # Filter hanya DO valid aktif, exclude Draft
-    df_do_final_valid = df_do_final_valid[
-    ~df_do_final_valid["Status"].str.contains("Draft", case=False, na=False)
-    ].copy()
 
     # =====================================================
     # STATUS PROGRESS
