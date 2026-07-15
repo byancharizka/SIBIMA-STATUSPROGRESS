@@ -548,395 +548,6 @@ def summarize_pic_status(df: pd.DataFrame, pic_col: str, doc_col: str) -> pd.Dat
     )
     return summary
 
-# =========================================================
-# 8) CHART HELPERS
-# =========================================================
-STATUS_COLORS = {
-    "Complete": "#00CC96",
-    "In Progress": "#F2C94C",
-    "Approved": "#F2994A",
-    "Need Approve": "#EB5757",
-    "Pending": "#56CCF2",
-}
-
-def render_status_pie(summary_df: pd.DataFrame, title: str):
-    if summary_df.empty:
-        st.info("Data status tidak tersedia.")
-        return
-
-    fig = px.pie(
-        summary_df,
-        values="Total_Amount",
-        names="Status",
-        color="Status",
-        color_discrete_map=STATUS_COLORS,
-        hole=0.45,
-    )
-    
-
-    fig.update_traces(
-        textinfo="percent+value",
-        texttemplate="%{percent:.1%}<br>(Rp %{value:,.0f})"
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def render_status_bar(summary_df: pd.DataFrame, title: str):
-    if summary_df.empty:
-        st.info("Data status tidak tersedia.")
-        return
-
-    fig = px.bar(
-        summary_df,
-        x="Status",
-        y="Total_Amount",
-        color="Status",
-        color_discrete_map=STATUS_COLORS,
-        title=title
-    )
-
-    fig.update_traces(
-        texttemplate="Rp %{y:,.0f}",
-        textposition="outside"
-    )
-    fig.update_layout(
-        showlegend=False,
-        yaxis=dict(
-            tickformat=",.0f",
-            title="Total Nominal (Rp)"
-        )
-    )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def render_pic_bar(summary_df: pd.DataFrame, x_col: str, y_col: str, color_col: str | None):
-    if summary_df.empty:
-        st.info("Data PIC tidak tersedia.")
-        return
-
-    # Hitung total transaksi per PIC
-    summary_df["Total_Doc"] = summary_df.groupby(x_col)[y_col].transform("sum")
-
-    kwargs = {
-        "data_frame": summary_df,
-        "x": x_col,
-        "y": y_col,
-    }
-
-    if color_col and color_col in summary_df.columns:
-        kwargs["color"] = color_col
-        kwargs["color_discrete_map"] = STATUS_COLORS
-
-    fig = px.bar(**kwargs)
-
-    # 🔹 Label per status (segmen warna) → di dalam bar
-    fig.update_traces(
-        texttemplate="%{y}",          # angka per status
-        textposition="inside",
-        textfont=dict(size=10, color="white")
-    )
-
-    # 🔹 Tambahkan angka total per PIC → di atas bar
-    totals = summary_df.groupby(x_col)[y_col].sum().reset_index()
-    for _, row in totals.iterrows():
-        fig.add_annotation(
-            x=row[x_col],             # posisi di sumbu X (PIC)
-            y=row[y_col],             # tinggi bar total
-            text=f"{row[y_col]}",     # angka total
-            showarrow=False,
-            font=dict(size=12, color="black"),
-            yshift=10                 # geser sedikit ke atas
-        )
-
-    fig.update_layout(
-        uniformtext_mode="hide",
-        uniformtext_minsize=8,
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def render_pic_heatmap(df: pd.DataFrame, pic_col: str, date_col: str, doc_col: str, title: str):
-    if df.empty or pic_col not in df.columns or date_col not in df.columns or doc_col not in df.columns:
-        st.info("Data tidak tersedia untuk heatmap aktivitas PIC.")
-        return
-
-    working = df.copy()
-    working[date_col] = pd.to_datetime(working[date_col], errors="coerce")
-    working[pic_col] = working[pic_col].fillna("Unassigned")
-
-    bulan_map = {1:"Jan",2:"Feb",3:"Mar",4:"Apr",5:"May",6:"Jun",7:"Jul",8:"Aug",9:"Sep",10:"Oct",11:"Nov",12:"Dec"}
-    working["Bulan"] = working[date_col].dt.month.map(bulan_map)
-    bulan_order = list(bulan_map.values())
-    working["Bulan"] = pd.Categorical(working["Bulan"], categories=bulan_order, ordered=True)
-
-    # gunakan doc_col dinamis
-    working[doc_col] = working[doc_col].astype(str).str.strip().str.upper()
-    summary = (
-        working.groupby([pic_col, "Bulan"])[doc_col]
-        .nunique()
-        .reset_index(name="Jumlah Transaksi")
-        .sort_values("Bulan")
-    )
-
-    fig = px.density_heatmap(summary, x="Bulan", y=pic_col, z="Jumlah Transaksi",
-                             color_continuous_scale=["#138207","#F2994A","#A80B0B"], text_auto=True)
-    
-    # tambahkan pengaturan layout di sini
-    fig.update_layout(
-        coloraxis_showscale=False,   # 🔹 sembunyikan color bar
-        coloraxis_colorbar=dict(title=None),  # 🔹 hilangkan teks "sum of Jumlah Transaksi"
-        xaxis_title="Bulan",
-        yaxis_title="PIC Procurement",
-        margin=dict(l=100, r=40, t=60, b=120),
-        height=500
-        )
-    st.plotly_chart(fig, use_container_width=True)
-
-
-    # Tambahkan keterangan di bawah heatmap
-    st.markdown(
-        "<div style='text-align:center; font-size:0.8rem; color:#6f6f6f;'>"
-        "📝 <b>Keterangan:</b> " \
-        "Kotak dengan warna mendekati merah artinya punya outstanding PR yang lebih banyak sedangkan " \
-        "kotak dengan warna mendekati biru artinya outstanding PRnya lebih sedikit"
-        "</div>",
-        unsafe_allow_html=True
-    )
-
-
-def calculate_aging(df: pd.DataFrame, date_col: str, prefer: str = "approved") -> pd.DataFrame:
-    """
-    Hitung aging dengan prioritas tanggal sesuai preferensi.
-    prefer bisa: "approved", "inprogress", "complete"
-    Default: "approved"
-    """
-    if df.empty or date_col not in df.columns:
-        return df.copy()
-
-    working = df.copy()
-    working = safe_to_datetime(working, date_col)
-    working = safe_to_datetime(working, "date_inprogress")
-    working = safe_to_datetime(working, "date_complete")
-    working = safe_to_datetime(working, "date_approved")
-
-    today = pd.Timestamp.today().normalize()
-
-    # Default aging = today - transaction_date
-    working["Aging"] = (today - working[date_col]).dt.days
-
-    # Terapkan prioritas sesuai prefer
-    if prefer == "approved":
-        mask = working["date_approved"].notna()
-        working.loc[mask, "Aging"] = (
-            working.loc[mask, "date_approved"] - working.loc[mask, date_col]
-        ).dt.days
-
-    elif prefer == "inprogress":
-        mask = working["date_inprogress"].notna()
-        working.loc[mask, "Aging"] = (
-            working.loc[mask, "date_inprogress"] - working.loc[mask, date_col]
-        ).dt.days
-
-    elif prefer == "complete":
-        mask = working["date_complete"].notna()
-        working.loc[mask, "Aging"] = (
-            working.loc[mask, "date_complete"] - working.loc[mask, date_col]
-        ).dt.days
-
-    return working
-
-
-def categorize_aging(df: pd.DataFrame) -> pd.DataFrame:
-    bins = [-1, 30, 60, 90, float("inf")]   # 🔹 ubah dari 0 → -1
-    labels = ["0-30 hari", "31-60 hari", "61-90 hari", ">90 hari"]
-    df["Aging Category"] = pd.cut(df["Aging"], bins=bins, labels=labels, right=True)
-    return df
-
-
-def render_aging_bar(df: pd.DataFrame, doc_col: str, chart_key: str = "aging_bar"):
-    if df.empty or "Aging Category" not in df.columns:
-        st.info("Data aging tidak tersedia.")
-        return
-
-    summary = (
-        df.groupby("Aging Category")[doc_col]
-        .nunique()
-        .reset_index(name="Jumlah Transaksi")
-    )
-
-    fig = px.bar(
-        summary,
-        x="Aging Category",
-        y="Jumlah Transaksi",
-        color="Aging Category",
-        color_discrete_map={
-            "0-30 hari": "#2F80ED",
-            "31-60 hari": "#7ABBEE",
-            "61-90 hari": "#FCA27F",
-            ">90 hari": "#EB5757"
-        },
-        text="Jumlah Transaksi"
-    )
-    fig.update_traces(textposition="outside")
-
-    # ✅ tambahkan key unik di sini
-    st.plotly_chart(fig, use_container_width=True, key=chart_key)
-
-
-def summarize_pic_aging(df: pd.DataFrame, pic_col: str, doc_col: str) -> pd.DataFrame:
-    if df.empty or pic_col not in df.columns or "Aging" not in df.columns or "Status" not in df.columns:
-        return pd.DataFrame(columns=[pic_col, "Average Aging", "Total_Doc", "Outstanding_Doc", "Completed_Doc", "Over90Pct"])
-
-    working = assign_unassigned(df, pic_col)
-
-    summary = (
-        working.groupby(pic_col).agg(
-            Average_Aging=("Aging", "mean"),   # 🔹 ubah nama kolom di sini
-            Total_Doc=(doc_col, "nunique"),
-            Outstanding_Doc=(doc_col, lambda x: (working.loc[x.index, "Status"] != "Complete").sum()),
-            Completed_Doc=(doc_col, lambda x: (working.loc[x.index, "Status"] == "Complete").sum()),
-            Over90Pct=("Aging", lambda x: (x > 90).sum() / len(x) * 100 if len(x) > 0 else 0)
-        )
-        .reset_index()
-    )
-    return summary
-
-def render_pic_aging_bar(summary_df: pd.DataFrame):
-    if summary_df.empty:
-        st.info("Data aging per PIC tidak tersedia.")
-        return
-    color_continuous_scale=[
-    (0.0, "#56CCF2"),   # hijau muda untuk aging rendah
-    (0.5, "#F2994A"),   # kuning untuk sedang
-    (1.0, "#EB5757")    # merah untuk aging tinggi
-    ]
-
-    fig = px.bar(
-    summary_df,
-    x="PIC Procurement",
-    y="Average_Aging",   # 🔹 gunakan nama baru
-    text="Average_Aging",
-    color="Average_Aging",
-    color_continuous_scale=[(0.0, "#56CCF2"), (0.5, "#F2C94C"), (1.0, "#EB5757")]
-    )
-
-    # Tambahkan pengaturan ukuran teks
-    fig.update_traces(
-    texttemplate="%{text:.1f} hari",
-    textposition="outside",
-    textfont=dict(
-        size=20,          # ubah sesuai kebutuhan (misalnya 18 atau 20)
-        color="black",    # warna teks agar kontras
-        family="Arial"    # jenis font agar lebih jelas
-        )
-    )
-
-    fig.update_layout(
-    coloraxis_showscale=False  # sembunyikan color scale di sisi kanan
-    )
-
-
-    st.plotly_chart(fig, use_container_width=True)
-
-def render_sla_gauge(df: pd.DataFrame, threshold: int = 5, title: str = "SLA Compliance"):
-    if df.empty or "Aging" not in df.columns:
-        st.info("Data aging tidak tersedia untuk SLA.")
-        return
-
-    sla_compliance = (df["Aging"] <= threshold).mean() * 100
-
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number",
-        value=sla_compliance,
-        number={'suffix': '%', 'font': {'size': 48, 'color': "#000"}},  # 🔹 tambahkan ini
-        title={'text': f"{title} (≤{threshold} hari)"},
-        gauge={
-            'axis': {'range': [0, 100]},
-            'bar': {'color': "blue"},
-            'steps': [
-                {'range': [0, 50], 'color': "red"},
-                {'range': [50, 80], 'color': "yellow"},
-                {'range': [80, 100], 'color': "green"}
-            ]
-        }
-    ))
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def summarize_pic_sla(df: pd.DataFrame, pic_col: str, doc_col: str, threshold: int = 5) -> pd.DataFrame:
-    if df.empty or pic_col not in df.columns or "Aging" not in df.columns:
-        return pd.DataFrame(columns=[pic_col, "Total_Doc", "SLA_Compliance"])
-
-    working = assign_unassigned(df, pic_col)
-
-    summary = (
-        working.groupby(pic_col).agg(
-            Total_Doc=(doc_col, "nunique"),
-            SLA_Compliance=(doc_col, lambda x: (working.loc[x.index, "Aging"] <= threshold).sum() / len(x) * 100 if len(x) > 0 else 0)
-        )
-        .reset_index()
-    )
-    return summary
-
-def render_pic_sla_bar(summary_df: pd.DataFrame):
-    if summary_df.empty:
-        st.info("Data SLA per PIC tidak tersedia.")
-        return
-
-    fig = px.bar(
-        summary_df,
-        x="PIC Procurement",
-        y="SLA_Compliance",
-        text="SLA_Compliance",
-        color="SLA_Compliance",
-        color_continuous_scale=["#EB5757", "#F2C94C", "#6FCF97"],  # merah → kuning → hijau
-    )
-    fig.update_traces(
-        texttemplate="%{text:.1f}%",
-        textposition="outside",
-        textfont=dict(size=14, color="black")
-    )
-    fig.update_layout(coloraxis_showscale=False)
-    st.plotly_chart(fig, use_container_width=True)
-
-
-def render_sla_trend(df: pd.DataFrame, threshold: int = 5, date_col: str = "transaction_date"):
-    if df.empty or "Aging" not in df.columns or date_col not in df.columns:
-        st.info("Data tidak tersedia untuk trend SLA.")
-        return
-
-    # Pastikan kolom tanggal dalam format datetime
-    df = safe_to_datetime(df, date_col)
-
-    # Tambahkan kolom bulan (Period)
-    df["Bulan"] = df[date_col].dt.to_period("M").dt.to_timestamp()
-
-    # Hitung SLA compliance per bulan
-    sla_trend = (
-        df.groupby("Bulan")
-        .agg(SLA_Compliance=("Aging", lambda x: (x <= threshold).mean() * 100))
-        .reset_index()
-    )
-
-    # Buat line chart
-    fig = px.line(
-        sla_trend,
-        x="Bulan",
-        y="SLA_Compliance",
-        markers=True,
-        title=f"Trend SLA Compliance per Bulan (≤{threshold} hari)"
-    )
-    fig.update_traces(
-        texttemplate="%{y:.1f}%",
-        textposition="top center"
-    )
-    fig.update_layout(
-        yaxis=dict(title="SLA Compliance (%)", range=[0, 100])
-    )
-
-    st.plotly_chart(fig, use_container_width=True)
-
 
 # =========================================================
 # 9) MAIN APP
@@ -1073,12 +684,6 @@ def main():
     # ---------- DATE FILTER ----------
     if isinstance(selected_date_range, (tuple, list)) and len(selected_date_range) == 2:
         report_start_date, report_end_date = selected_date_range
-        df_pr_f = apply_cumulative_filter(df_pr_f, report_end_date)
-        df_po_f = apply_cumulative_filter(df_po_f, report_end_date)
-        df_grn_f = apply_cumulative_filter(df_grn_f, report_end_date)
-        df_do_f = apply_cumulative_filter(df_do_f, report_end_date)
-        df_npr_f = apply_cumulative_filter(df_npr_f, report_end_date)
-        #df_pur_f = apply_cumulative_filter(df_pur_f, report_end_date)
         df_so_final_f = apply_cumulative_filter(df_so_final_f, report_end_date)
         df_pr_final_f = apply_cumulative_filter(df_pr_final_f, report_end_date)
         df_po_final_f = apply_cumulative_filter(df_po_final_f, report_end_date)
@@ -1098,21 +703,15 @@ def main():
         #df_npr_final_real = apply_realization_filter(df_npr_final, report_start_date, report_end_date)
 
     # ---------- SEARCH FILTER ----------
-    df_pr_f = apply_search_filter(df_pr_f, search_number, search_status, search_pic)
-    df_po_f = apply_search_filter(df_po_f, search_number, search_status, search_pic)
-    df_grn_f = apply_search_filter(df_grn_f, search_number, search_status, search_pic)
-    df_do_f = apply_search_filter(df_do_f, search_number, search_status, search_pic)
-    df_npr_f = apply_search_filter(df_npr_f, search_number, search_status, search_pic)
+    df_pr_final_f = apply_search_filter(df_pr_final_f search_number, search_status, search_pic)
+    #df_po_f = apply_search_filter(df_po_f, search_number, search_status, search_pic)
+    #df_grn_f = apply_search_filter(df_grn_f, search_number, search_status, search_pic)
+    #df_do_f = apply_search_filter(df_do_f, search_number, search_status, search_pic)
+    #df_npr_f = apply_search_filter(df_npr_f, search_number, search_status, search_pic)
     #df_pur_f = apply_search_filter(df_pur_f, search_number, search_status, search_pic)
     #df_pr_final_real = apply_search_filter(df_pr_final_real, search_number, search_status, search_pic)
 
 
-    # ---------- ENSURE IMPORTANT COLUMNS ----------
-    df_pr_f = ensure_columns(df_pr_f, ["Nominal", "No. PR", "Status", "PIC Procurement"])
-    df_po_f = ensure_columns(df_po_f, ["Nominal"])
-    df_grn_f = ensure_columns(df_grn_f, ["Nominal"])
-    df_do_f = ensure_columns(df_do_f, ["Nominal", "No. DO", "PIC Purchasing"])
-    df_npr_f = ensure_columns(df_npr_f, ["Status", "Sales"])
     #df_pur_f = ensure_columns(df_pur_f, ["No. PUR", "PIC", "Status"])
     df_so_final_real = ensure_columns(df_so_final_real, ["detail_id", "so_detail_id", "transaction_number","Status", "price", "quantity", "discount", "transaction_total", "tax1_percentage", "tax2_percentage"])
     df_pr_final_real = ensure_columns(df_pr_final_real, ["pr_detail_id", "so_detail_id", "PIC Procurement", "transaction_number","Status", "price", "quantity", "discount", "transaction_total", "tax1_percentage", "tax2_percentage"])
@@ -1120,11 +719,6 @@ def main():
     df_grn_final_real = ensure_columns(df_grn_final_real, ["po_detail_id", "grn_detail_id","PIC Procurement", "transaction_number","Status", "price", "quantity", "discount", "transaction_total", "tax1_percentage", "tax2_percentage"])
     df_do_final_real = ensure_columns(df_do_final_real, ["do_detail_id", "PIC Procurement", "transaction_number","Status", "price", "quantity", "discount", "transaction_total", "tax1_percentage", "tax2_percentage"])
     df_si_final_real = ensure_columns(df_si_final_real, ["do_detail_id", "si_detail_id", "PIC Procurement", "transaction_number","Status", "price", "quantity", "discount", "transaction_total", "tax1_percentage", "tax2_percentage"])
-
-    df_pr_f = safe_to_numeric(df_pr_f, ["Nominal"])
-    df_po_f = safe_to_numeric(df_po_f, ["Nominal"])
-    df_grn_f = safe_to_numeric(df_grn_f, ["Nominal"])
-    df_do_f = safe_to_numeric(df_do_f, ["Nominal"])
     #df_pr_final_real = safe_to_numeric(df_pr_final_real, ["price", "discount", "quantity", "tax1_percentage", "tax2_percentage"])
     df_so_final_real= safe_to_numeric(df_so_final_real, ["item_price", "item_discount", "item_quantity", "item_tax1_percentage", "item_tax2_percentage"])
     df_pr_final_real= safe_to_numeric(df_pr_final_real, ["item_price", "item_discount", "item_quantity", "item_tax1_percentage", "item_tax2_percentage"])
@@ -1345,7 +939,56 @@ def main():
     ~df_do_final_valid["Status"].str.contains("Draft", case=False, na=False)
     ].copy()
 
+    # =====================================================
+    # STATUS PROGRESS
+    # =====================================================
+    if selected_doc_type == "STATUS PROGRESS":
+        with st.container(border=True):
+        # --- Tampilkan tabel di dashboard
+            #st.subheader("📊 Tabel Lengkap Status Progres Per Item")
+            #st.dataframe(final_merge)
 
+            # Misalnya df_final adalah hasil merge
+        selected_columns = [
+            "No. PR", 
+            "transaction_date", 
+            "Status", 
+            "PIC Procurement", 
+            "Nominal"
+        ]
+
+        df_display = df_final[selected_columns]
+
+        # Tampilkan di Streamlit
+        st.dataframe(df_display, use_container_width=True)
+
+
+            st.download_button(
+                label=f"⬇️Download {len(final_merge):,} Baris Data (Filtered).xlsx",
+                data=to_excel_bytes(final_merge, sheet_name="Data_Status_Progress"),
+                file_name=f"Data_Status_Progress_Export_{datetime.now().strftime('%Y%m%d')}.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+            st.caption(f"Menampilkan {len(final_merge):,} baris data yang akan di-download.")
+
+            # Tampilkan ringkasan di dashboard
+            status_summary = final_merge['status_progres'].value_counts().reset_index()
+            status_summary.columns = ['Status Progres', 'Jumlah Item']
+
+            st.subheader("📊 Status Progres Per Item")
+            st.dataframe(status_summary)
+
+            # Visualisasi bar chart
+            fig_status = px.bar(
+                status_summary,
+                x='Status Progres',
+                y='Jumlah Item',
+                color='Status Progres',
+                title='Distribusi Status Item',
+                text='Jumlah Item'
+            )
+            fig_status.update_traces(textposition='outside')
+            st.plotly_chart(fig_status, use_container_width=True)
 
     # ---------- FOOTER INFO ----------
     with st.expander("ℹ️ Informasi Teknis Dashboard"):
