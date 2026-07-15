@@ -612,7 +612,8 @@ def main():
         "status_description": "Status_so",
         "item_id": "so_detail_id",
         "transaction_number" : "transaction_number_so",
-        "item_product_id" : "product_id"
+        "item_product_id" : "product_id",
+        "item_item_name" : "item_name"
     })
     #PR
     df_pr_final = df_pr_final.rename(columns={
@@ -732,7 +733,7 @@ def main():
 
 
     #df_pur_f = ensure_columns(df_pur_f, ["No. PUR", "PIC", "Status"])
-    df_so_final_real = ensure_columns(df_so_final_real, ["so_detail_id", "transaction_number_so","Status", "product_id"])
+    df_so_final_real = ensure_columns(df_so_final_real, ["so_detail_id", "transaction_number_so","Status", "product_id", "item_name"])
     df_pr_final_real = ensure_columns(df_pr_final_real, ["pr_detail_id", "so_detail_id", "transaction_number_pr", "product_id"])
     df_po_final_real = ensure_columns(df_po_final_real, ["po_detail_id", "pr_detail_id", "transaction_number_po", "product_id"])
     df_grn_final_real = ensure_columns(df_grn_final_real, ["po_detail_id", "grn_detail_id", "transaction_number_grn", "product_id"])
@@ -816,7 +817,7 @@ def main():
 
 
     #Set Subset
-    df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so", "product_id"]]
+    df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so", "product_id", "item_name"]]
     df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr", "product_id"]]
     df_po_subset = df_po_final_real[["pr_detail_id", "po_detail_id", "transaction_number_po", "Status_po", "product_id"]]
     df_grn_subset = df_grn_final_real[["po_detail_id", "grn_detail_id", "transaction_number_grn", "Status_grn", "product_id"]]
