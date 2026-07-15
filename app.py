@@ -375,7 +375,7 @@ def load_all_data_new(start_date=None, end_date=None) -> dict[str, pd.DataFrame]
         "po": "purchase-orders",
         "grn" : "goods-receipt-notes",
         "do": "delivery-orders",
-        "si" : "sales-orders"
+        "si" : "sales-invoices"
         #"npr": "purchase-requests",
     }
 
@@ -819,6 +819,7 @@ def main():
     #st.dataframe(df_so_subset, use_container_width=True)
     #st.dataframe(df_pr_subset, use_container_width=True)
     #st.dataframe(df_po_subset, use_container_width=True)
+    #st.dataframe(df_si_subset, use_container_width=True)
 
     # Baris dengan so_detail_id kosong (NaN)
     #df_empty_so = df_so_subset[df_so_subset["so_detail_id"].isna()]
