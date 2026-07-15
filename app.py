@@ -1351,8 +1351,8 @@ def main():
     if selected_doc_type == "STATUS PROGRESS":
         with st.container(border=True):
         # --- Tampilkan tabel di dashboard
-            st.subheader("📊 Tabel Lengkap Status Progres Per Item")
-            st.dataframe(final_merge)
+            #st.subheader("📊 Tabel Lengkap Status Progres Per Item")
+            #st.dataframe(final_merge)
 
             st.download_button(
                 label=f"⬇️Download {len(final_merge):,} Baris Data (Filtered).xlsx",
