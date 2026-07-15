@@ -703,7 +703,7 @@ def main():
         #df_npr_final_real = apply_realization_filter(df_npr_final, report_start_date, report_end_date)
 
     # ---------- SEARCH FILTER ----------
-    df_pr_final_f = apply_search_filter(df_pr_final_f search_number, search_status, search_pic)
+    df_pr_final_f = apply_search_filter(df_pr_final_f, search_number, search_status, search_pic)
     #df_po_f = apply_search_filter(df_po_f, search_number, search_status, search_pic)
     #df_grn_f = apply_search_filter(df_grn_f, search_number, search_status, search_pic)
     #df_do_f = apply_search_filter(df_do_f, search_number, search_status, search_pic)
