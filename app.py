@@ -705,15 +705,21 @@ def main():
         df_si_final_f = apply_cumulative_filter(df_si_final_f, report_end_date)
         #df_npr_final_f = apply_cumulative_filter(df_npr_final_f, report_end_date)
 
-        # 🔹 Dataset baru (PR Final) pakai realisasi
-        df_so_final_real = apply_realization_filter(df_so_final, report_start_date, report_end_date)
-        df_pr_f_real = apply_realization_filter(df_pr_f, report_start_date, report_end_date)
+
+
+        # Tetapkan tanggal awal khusus untuk SO
+        so_start_date = date(2026, 1, 1)
+        report_end_date = today   # atau sesuai input user
+
+        # Filter SO mulai 1 Januari 2026
+        df_so_final_real = apply_realization_filter(df_so_final, so_start_date, report_end_date)
+
+        # Dataset lain tetap pakai range dari filter user
         df_pr_final_real = apply_realization_filter(df_pr_final, report_start_date, report_end_date)
         df_po_final_real = apply_realization_filter(df_po_final, report_start_date, report_end_date)
         df_grn_final_real = apply_realization_filter(df_grn_final, report_start_date, report_end_date)
         df_do_final_real = apply_realization_filter(df_do_final, report_start_date, report_end_date)
         df_si_final_real = apply_realization_filter(df_si_final, report_start_date, report_end_date)
-        #df_npr_final_real = apply_realization_filter(df_npr_final, report_start_date, report_end_date)
 
     # ---------- SEARCH FILTER ----------
     df_pr_final_f = apply_search_filter(df_pr_final_f, search_number, search_status, search_pic)
@@ -868,6 +874,10 @@ def main():
         suffixes=("_grndo", "_si")
     )
 
+    final_merge = final_merge[
+    final_merge["so_detail_id"].notna() &
+    final_merge["transaction_number_so"].notna()
+    ]
 
 
     # Pastikan kolom detail_id sudah ada di hasil merge
