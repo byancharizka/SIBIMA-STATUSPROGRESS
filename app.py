@@ -1344,3 +1344,27 @@ def main():
     df_do_final_valid = df_do_final_valid[
     ~df_do_final_valid["Status"].str.contains("Draft", case=False, na=False)
     ].copy()
+
+
+
+    # ---------- FOOTER INFO ----------
+    with st.expander("ℹ️ Informasi Teknis Dashboard"):
+        selected_report_date = (
+            selected_date_range[1]
+            if isinstance(selected_date_range, (tuple, list)) and len(selected_date_range) == 2
+            else date.today()
+        )
+
+        st.markdown(
+            f"""
+- **Base URL:** `{BASE_URL}`
+- **Timeout Request:** `{REQUEST_TIMEOUT}` detik
+- **Tanggal report sampai:** `{selected_report_date}`
+- **Mode filter tanggal:** kumulatif (semua data sampai tanggal akhir)
+- **Cache API:** 600 detik
+            """
+        )
+
+
+if __name__ == "__main__":
+    main()
