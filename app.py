@@ -654,6 +654,7 @@ def main():
     df_si_final = df_si_final.rename(columns={
         "status_description": "Status_si",
         "item_do_detail_id" : "do_detail_id",
+        "item_id": "si_detail_id",
         "transaction_number" : "transaction_number_si",
         "item_product_id" : "product_id"
     })
