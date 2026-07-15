@@ -611,7 +611,8 @@ def main():
     df_so_final = df_so_final.rename(columns={
         "status_description": "Status_so",
         "item_id": "so_detail_id",
-        "transaction_number" : "transaction_number_so"
+        "transaction_number" : "transaction_number_so",
+        "item_product_id" : "product_id"
     })
     #PR
     df_pr_final = df_pr_final.rename(columns={
@@ -619,7 +620,8 @@ def main():
         "status_description": "Status_pr",
         "item_id": "pr_detail_id",
         "item_so_detail_id" : "so_detail_id",
-        "transaction_number" : "transaction_number_pr"
+        "transaction_number" : "transaction_number_pr",
+        "item_product_id" : "product_id"
     })
     #PO
     df_po_final = df_po_final.rename(columns={
@@ -627,7 +629,8 @@ def main():
         "status_description": "Status_po",
         "item_id": "po_detail_id",
         "item_pr_detail_id" : "pr_detail_id",
-        "transaction_number" : "transaction_number_po"
+        "transaction_number" : "transaction_number_po",
+        "item_product_id" : "product_id"
     })
     #GRN
     df_grn_final = df_grn_final.rename(columns={
@@ -635,7 +638,8 @@ def main():
         "status_description": "Status_grn",
         "item_id": "grn_detail_id",
         "item_po_detail_id" : "po_detail_id",
-        "transaction_number" : "transaction_number_grn"
+        "transaction_number" : "transaction_number_grn",
+        "item_product_id" : "product_id"
     })
     #DO
     df_do_final = df_do_final.rename(columns={
@@ -643,13 +647,15 @@ def main():
         "status_description": "Status_do",
         "item_id": "do_detail_id",
         "item_grn_detail_id" : "grn_detail_id",
-        "transaction_number" : "transaction_number_do"
+        "transaction_number" : "transaction_number_do",
+        "item_product_id" : "product_id"
     })
     #SI
     df_si_final = df_si_final.rename(columns={
         "status_description": "Status_si",
         "item_do_detail_id" : "do_detail_id",
-        "transaction_number" : "transaction_number_si"
+        "transaction_number" : "transaction_number_si",
+        "item_product_id" : "product_id"
     })
 
     df_do = df_do.rename(columns={
@@ -719,12 +725,12 @@ def main():
 
 
     #df_pur_f = ensure_columns(df_pur_f, ["No. PUR", "PIC", "Status"])
-    df_so_final_real = ensure_columns(df_so_final_real, ["so_detail_id", "transaction_number_so","Status",])
-    df_pr_final_real = ensure_columns(df_pr_final_real, ["pr_detail_id", "so_detail_id", "transaction_number_pr"])
-    df_po_final_real = ensure_columns(df_po_final_real, ["po_detail_id", "pr_detail_id", "transaction_number_po"])
-    df_grn_final_real = ensure_columns(df_grn_final_real, ["po_detail_id", "grn_detail_id", "transaction_number_grn"])
-    df_do_final_real = ensure_columns(df_do_final_real, ["grn_detail_id", "do_detail_id", "transaction_number_do"])
-    df_si_final_real = ensure_columns(df_si_final_real, ["do_detail_id", "si_detail_id", "transaction_number_si"])
+    df_so_final_real = ensure_columns(df_so_final_real, ["so_detail_id", "transaction_number_so","Status", "product_id"])
+    df_pr_final_real = ensure_columns(df_pr_final_real, ["pr_detail_id", "so_detail_id", "transaction_number_pr", "product_id"])
+    df_po_final_real = ensure_columns(df_po_final_real, ["po_detail_id", "pr_detail_id", "transaction_number_po", "product_id"])
+    df_grn_final_real = ensure_columns(df_grn_final_real, ["po_detail_id", "grn_detail_id", "transaction_number_grn", "product_id"])
+    df_do_final_real = ensure_columns(df_do_final_real, ["grn_detail_id", "do_detail_id", "transaction_number_do", "product_id"])
+    df_si_final_real = ensure_columns(df_si_final_real, ["do_detail_id", "si_detail_id", "transaction_number_si", "product_id"])
     #df_pr_final_real = safe_to_numeric(df_pr_final_real, ["price", "discount", "quantity", "tax1_percentage", "tax2_percentage"])
     #df_so_final_real= safe_to_numeric(df_so_final_real, ["item_price", "item_discount", "item_quantity", "item_tax1_percentage", "item_tax2_percentage"])
     #df_pr_final_real= safe_to_numeric(df_pr_final_real, ["item_price", "item_discount", "item_quantity", "item_tax1_percentage", "item_tax2_percentage"])
@@ -768,16 +774,32 @@ def main():
     #st.write("PO detail_id unik:", po_unique, " | Total baris:", po_total)
     #st.write("GRN detail_id unik:", grn_unique, " | Total baris:", grn_total)
     #st.write("DO detail_id unik:", do_unique, " | Total baris:", do_total)
-    df_so_final_real['so_detail_id'] = df_so_final_real['so_detail_id'].astype(str)
-    df_pr_final_real['so_detail_id'] = df_pr_final_real['so_detail_id'].astype(str)
-    df_pr_final_real['pr_detail_id'] = df_pr_final_real['pr_detail_id'].astype(str)
-    df_po_final_real['pr_detail_id'] = df_po_final_real['pr_detail_id'].astype(str)
-    df_po_final_real['po_detail_id'] = df_po_final_real['po_detail_id'].astype(str)
-    df_grn_final_real['po_detail_id'] = df_grn_final_real['po_detail_id'].astype(str)
-    df_grn_final_real['grn_detail_id'] = df_grn_final_real['grn_detail_id'].astype(str)
-    df_do_final_real['grn_detail_id'] = df_do_final_real['grn_detail_id'].astype(str)
-    df_do_final_real['do_detail_id'] = df_do_final_real['do_detail_id'].astype(str)
-    df_si_final_real['do_detail_id'] = df_si_final_real['do_detail_id'].astype(str)
+    #df_so_final_real['so_detail_id'] = df_so_final_real['so_detail_id'].astype(str)
+    #df_pr_final_real['so_detail_id'] = df_pr_final_real['so_detail_id'].astype(str)
+    #df_pr_final_real['pr_detail_id'] = df_pr_final_real['pr_detail_id'].astype(str)
+    #df_po_final_real['pr_detail_id'] = df_po_final_real['pr_detail_id'].astype(str)
+    #df_po_final_real['po_detail_id'] = df_po_final_real['po_detail_id'].astype(str)
+    #df_grn_final_real['po_detail_id'] = df_grn_final_real['po_detail_id'].astype(str)
+    #df_grn_final_real['grn_detail_id'] = df_grn_final_real['grn_detail_id'].astype(str)
+    #df_do_final_real['grn_detail_id'] = df_do_final_real['grn_detail_id'].astype(str)
+    #df_do_final_real['do_detail_id'] = df_do_final_real['do_detail_id'].astype(str)
+    #df_si_final_real['do_detail_id'] = df_si_final_real['do_detail_id'].astype(str)
+
+
+    # Konversi semua kolom ID menjadi integer murni
+    for col in [
+        "so_detail_id", "pr_detail_id", "po_detail_id",
+        "grn_detail_id", "do_detail_id"
+    ]:
+        for df in [
+            df_so_final_real, df_pr_final_real, df_po_final_real,
+            df_grn_final_real, df_do_final_real, df_si_final_real
+        ]:
+            if col in df.columns:
+                df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+
+
 
     #so_pr = df_so_final_real.merge(df_pr_final_real, left_on='detail_id', right_on='so_detail_id', how='outer')
     #pr_po = so_pr.merge(df_po_final_real, left_on='pr_detail_id', right_on='pr_detail_id', how='outer')
@@ -787,58 +809,63 @@ def main():
 
 
     #Set Subset
-    df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so"]]
-    df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr"]]
-    df_po_subset = df_po_final_real[["pr_detail_id", "po_detail_id", "transaction_number_po", "Status_po"]]
-    df_grn_subset = df_grn_final_real[["po_detail_id", "grn_detail_id", "transaction_number_grn", "Status_grn"]]
-    df_do_subset = df_do_final_real[["grn_detail_id", "do_detail_id", "transaction_number_do", "Status_do"]]
-    df_si_subset = df_si_final_real[["do_detail_id", "si_detail_id", "transaction_number_si", "Status_si"]]
+    df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so", "product_id"]]
+    df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr", "product_id"]]
+    df_po_subset = df_po_final_real[["pr_detail_id", "po_detail_id", "transaction_number_po", "Status_po", "product_id"]]
+    df_grn_subset = df_grn_final_real[["po_detail_id", "grn_detail_id", "transaction_number_grn", "Status_grn", "product_id"]]
+    df_do_subset = df_do_final_real[["grn_detail_id", "do_detail_id", "transaction_number_do", "Status_do", "product_id"]]
+    df_si_subset = df_si_final_real[["do_detail_id", "si_detail_id", "transaction_number_si", "Status_si", "product_id"]]
 
-    st.dataframe(df_so_subset, use_container_width=True)
-    st.dataframe(df_pr_subset, use_container_width=True)
-    st.dataframe(df_po_subset, use_container_width=True)
+    #st.dataframe(df_so_subset, use_container_width=True)
+    #st.dataframe(df_pr_subset, use_container_width=True)
+    #st.dataframe(df_po_subset, use_container_width=True)
 
     # Baris dengan so_detail_id kosong (NaN)
-    df_empty_so = df_so_subset[df_so_subset["so_detail_id"].isna()]
+    #df_empty_so = df_so_subset[df_so_subset["so_detail_id"].isna()]
 
     # Kalau kosongnya berupa string kosong ""
-    df_empty_so = df_so_subset[df_so_subset["so_detail_id"] == ""]
+    #df_empty_so = df_so_subset[df_so_subset["so_detail_id"] == ""]
 
-    st.write("Jumlah SO kosong:", len(df_empty_so))
-    st.dataframe(df_empty_so, use_container_width=True)
+    #st.write("Jumlah SO kosong:", len(df_empty_so))
+    #st.dataframe(df_empty_so, use_container_width=True)
 
 
 
     so_pr = df_so_subset.merge(
-    df_pr_subset,
-    on='so_detail_id',
-    how='outer',
-    #suffixes=('_so', '_pr')
+        df_pr_subset,
+        how="outer",
+        on=["so_detail_id", "product_id"],
+        suffixes=("_so", "_pr")
     )
+
     pr_po = so_pr.merge(
-    df_po_subset,
-    on='pr_detail_id',
-    how='outer',
-    #suffixes=('_sopr', '_po')
+        df_po_subset,
+        how="outer",
+        on=["pr_detail_id", "product_id"],
+        suffixes=("_sopr", "_po")
     )
+
     po_grn = pr_po.merge(
-    df_grn_subset,
-    on='po_detail_id',
-    how='outer',
-    #suffixes=('_prpo', '_grn')
+        df_grn_subset,
+        how="outer",
+        on=["po_detail_id", "product_id"],
+        suffixes=("_prpo", "_grn")
     )
+
     grn_do = po_grn.merge(
-    df_do_subset,
-    on='grn_detail_id',
-    how='outer',
-    #suffixes=('_pogrn', '_do')
+        df_do_subset,
+        how="outer",
+        on=["grn_detail_id", "product_id"],
+        suffixes=("_pogrn", "_do")
     )
+
     final_merge = grn_do.merge(
-    df_si_subset,
-    on='do_detail_id',
-    how='outer',
-    #suffixes=('_grndo', '_si')
+        df_si_subset,
+        how="outer",
+        on=["do_detail_id", "product_id"],
+        suffixes=("_grndo", "_si")
     )
+
 
 
     # Pastikan kolom detail_id sudah ada di hasil merge
