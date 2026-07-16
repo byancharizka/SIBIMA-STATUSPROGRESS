@@ -17,7 +17,7 @@ from requests.packages.urllib3.util.retry import Retry
 # =========================================================
 st.set_page_config(
     layout="wide",
-    page_title="SIBIMA Performance Dashboard - PROCUREMENT",
+    page_title="SIBIMA Performance Dashboard - PROCUREMENT & PURCHASING",
     initial_sidebar_state="expanded"
 )
 
@@ -554,7 +554,7 @@ def summarize_pic_status(df: pd.DataFrame, pic_col: str, doc_col: str) -> pd.Dat
 # =========================================================
 
 def main():
-    st.title("SIBIMA Performance Dashboard - PROCUREMENT")
+    st.title("SIBIMA Performance Dashboard - PROCUREMENT & PURCHASING")
 
     # ---------- TOP FILTERS ----------
     today = date.today()
