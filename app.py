@@ -560,7 +560,8 @@ def main():
     today = date.today()
     default_start = date(today.year, today.month, 1)
 
-    col_head1, col_head2, col_head3, col_head4, col_head5 = st.columns([1, 1, 1, 1, 1])
+    #col_head1, col_head2, col_head3, col_head4, col_head5 = st.columns([1, 1, 1, 1, 1])
+    col_head1, col_head3, col_head4, col_head5 = st.columns([1, 1, 1, 1])
 
     with col_head1:
         selected_date_range = st.date_input(
@@ -569,8 +570,8 @@ def main():
             max_value=today
         )
 
-    with col_head2:
-        selected_doc_type = st.selectbox("Pilih Jenis Dokumen 📑", ["STATUS PROGRESS"])
+    #with col_head2:
+        #selected_doc_type = st.selectbox("Pilih Jenis Dokumen 📑", ["STATUS PROGRESS"])
 
     with col_head3:
         search_number = st.text_input("Cari Nomor Transaksi 🔍", placeholder="No. PR / No. DO / No. NPR / No. PUR")
@@ -932,8 +933,8 @@ def main():
     # =====================================================
     # STATUS PROGRESS
     # =====================================================
-    if selected_doc_type == "STATUS PROGRESS":
-        with st.container(border=True):
+    #if selected_doc_type == "STATUS PROGRESS":
+    with st.container(border=True):
         # --- Tampilkan tabel di dashboard
             #st.subheader("📊 Tabel Lengkap Status Progres Per Item")
             #st.dataframe(final_merge)
