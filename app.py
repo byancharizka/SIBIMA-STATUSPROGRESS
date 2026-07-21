@@ -580,25 +580,7 @@ def main():
         search_status = st.text_input("Cari Status 🔍", placeholder="Complete / In Progress / Approved / Need Approve")
 
     with col_head5:
-        # Gabungkan semua PIC dari beberapa kolom
-        pic_cols = ["PIC Procurement", "PIC Purchasing", "PIC PUR"]
-        pic_values = []
-
-        for col in pic_cols:
-            if col in df_pr_final.columns:
-                pic_values.extend(df_pr_final[col].dropna().unique().tolist())
-
-        # Hilangkan duplikat dan urutkan
-        pic_options = sorted(set(pic_values))
-        pic_options.insert(0, "All")  # Tambahkan opsi "All" di awal
-
-        # Multi-select dropdown
-        selected_pics = st.multiselect(
-            "Pilih PIC 🔍",
-            options=pic_options,
-            default=["All"]  # Default langsung "All"
-        )
-
+        search_pic = st.text_input("Cari PIC 🔍", placeholder="PIC Procurement / PIC Purchasing / PIC PUR")
 
     # ---------- LOAD DATA ----------
     if isinstance(selected_date_range, (tuple, list)) and len(selected_date_range) == 2:
@@ -714,7 +696,6 @@ def main():
     df_do_final_f = df_do_final.copy()
     df_si_final_f = df_si_final.copy()
 
-
     # ---------- DATE FILTER ----------
     if isinstance(selected_date_range, (tuple, list)) and len(selected_date_range) == 2:
         report_start_date, report_end_date = selected_date_range
@@ -741,14 +722,6 @@ def main():
         df_grn_final_real = apply_cumulative_filter(df_grn_final, report_end_date)
         df_do_final_real = apply_cumulative_filter(df_do_final, report_end_date)
         df_si_final_real = apply_cumulative_filter(df_si_final, report_end_date)
-
-        # Filter data sesuai pilihan dropdown
-        if selected_pics and "All" not in selected_pics:
-            df_pr_final_f = df_pr_final_f[
-                df_pr_final_f[pic_cols].apply(
-                    lambda col: col.str.contains('|'.join(selected_pics), case=False, na=False)
-                ).any(axis=1)
-            ]
 
     # ---------- SEARCH FILTER ----------
     df_pr_final_f = apply_search_filter(df_pr_final_f, search_number, search_status, search_pic)
@@ -999,7 +972,7 @@ def main():
             st.caption(f"Menampilkan {len(final_merge):,} baris data yang akan di-download.")
 
             # Tampilkan ringkasan di dashboard
-            status_summary = df_display['status_progres'].value_counts().reset_index()
+            status_summary = final_merge['status_progres'].value_counts().reset_index()
             status_summary.columns = ['Status Progres', 'Jumlah Item']
 
             st.subheader("📊 Status Progres Per Item")
