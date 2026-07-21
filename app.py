@@ -738,7 +738,7 @@ def main():
     df_pr_final_real = ensure_columns(df_pr_final_real, ["pr_detail_id", "so_detail_id", "transaction_number_pr", "product_id"])
     df_po_final_real = ensure_columns(df_po_final_real, ["po_detail_id", "pr_detail_id", "transaction_number_po", "product_id"])
     df_grn_final_real = ensure_columns(df_grn_final_real, ["po_detail_id", "grn_detail_id", "transaction_number_grn", "product_id"])
-    df_do_final_real = ensure_columns(df_do_final_real, ["grn_detail_id", "do_detail_id", "transaction_number_do", "product_id"])
+    df_do_final_real = ensure_columns(df_do_final_real, ["so_detail_id", "grn_detail_id", "do_detail_id", "transaction_number_do", "product_id"])
     df_si_final_real = ensure_columns(df_si_final_real, ["do_detail_id", "si_detail_id", "transaction_number_si", "product_id"])
     #df_pr_final_real = safe_to_numeric(df_pr_final_real, ["price", "discount", "quantity", "tax1_percentage", "tax2_percentage"])
     #df_so_final_real= safe_to_numeric(df_so_final_real, ["item_price", "item_discount", "item_quantity", "item_tax1_percentage", "item_tax2_percentage"])
@@ -817,70 +817,88 @@ def main():
     #final_merge = grn_do.merge(df_si_final_real, left_on='do_detail_id', right_on='do_detail_id', how='outer')
 
 
-    #Set Subset
+# Set Subset
     df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so", "product_id", "item_name"]]
     df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr", "product_id"]]
     df_po_subset = df_po_final_real[["pr_detail_id", "po_detail_id", "transaction_number_po", "Status_po", "product_id"]]
     df_grn_subset = df_grn_final_real[["po_detail_id", "grn_detail_id", "transaction_number_grn", "Status_grn", "product_id"]]
-    df_do_subset = df_do_final_real[["grn_detail_id", "do_detail_id", "transaction_number_do", "Status_do", "product_id"]]
+    df_do_subset = df_do_final_real[["so_detail_id", "grn_detail_id", "do_detail_id", "transaction_number_do", "Status_do", "product_id"]]
     df_si_subset = df_si_final_real[["do_detail_id", "si_detail_id", "transaction_number_si", "Status_si", "product_id"]]
 
-    #st.dataframe(df_so_subset, use_container_width=True)
-    #st.dataframe(df_pr_subset, use_container_width=True)
-    #st.dataframe(df_po_subset, use_container_width=True)
-    #st.dataframe(df_si_subset, use_container_width=True)
-
-    # Baris dengan so_detail_id kosong (NaN)
-    #df_empty_so = df_so_subset[df_so_subset["so_detail_id"].isna()]
-
-    # Kalau kosongnya berupa string kosong ""
-    #df_empty_so = df_so_subset[df_so_subset["so_detail_id"] == ""]
-
-    #st.write("Jumlah SO kosong:", len(df_empty_so))
-    #st.dataframe(df_empty_so, use_container_width=True)
-
-
-
+    # 1. Merge SO ke PR
+    # Dibuang kolom so_detail_id di df_pr_subset agar TIDAK menimbulkan bentrok suffix (_so / _pr)
+    pr_clean = df_pr_subset[df_pr_subset["so_detail_id"].notna()].drop(columns=["so_detail_id"], errors="ignore")
+    so_pr = df_so_subset.merge(
+        pr_clean,
+        how="left",
+        on=["product_id"], # atau bisa pakai left_on/right_on jika tanpa drop
+    )
+    # Agar lebih presisi, kita gunakan merge berbasis so_detail_id & product_id
     so_pr = df_so_subset.merge(
         df_pr_subset[df_pr_subset["so_detail_id"].notna()],
         how="left",
         on=["so_detail_id", "product_id"],
-        suffixes=("_so", "_pr")
+        suffixes=("", "_pr")
     )
 
+    # 2. Merge PR ke PO
     pr_po = so_pr.merge(
         df_po_subset[df_po_subset["pr_detail_id"].notna()],
         how="left",
         on=["pr_detail_id", "product_id"],
-        suffixes=("_sopr", "_po")
+        suffixes=("", "_po")
     )
 
+    # 3. Merge PO ke GRN
     po_grn = pr_po.merge(
         df_grn_subset[df_grn_subset["po_detail_id"].notna()],
         how="left",
         on=["po_detail_id", "product_id"],
-        suffixes=("_prpo", "_grn")
+        suffixes=("", "_grn")
     )
 
-    grn_do = po_grn.merge(
-        df_do_subset[df_do_subset["grn_detail_id"].notna()],
+    # 4. JALUR A: Join GRN -> DO (Hanya jika grn_detail_id ada)
+    po_grn_do_via_grn = po_grn.merge(
+        df_do_subset[df_do_subset["grn_detail_id"].notna()].drop(columns=["so_detail_id"], errors="ignore"),
         how="left",
         on=["grn_detail_id", "product_id"],
-        suffixes=("_pogrn", "_do")
+        suffixes=("", "_do_grn")
     )
 
-    final_merge = grn_do.merge(
+    # 5. JALUR B: Join SO -> DO Direct (Hanya jika DO tersebut punya so_detail_id)
+    df_do_direct_so = df_do_subset[df_do_subset["so_detail_id"].notna()].copy()
+    
+    final_do_step = po_grn_do_via_grn.merge(
+        df_do_direct_so,
+        how="left",
+        on=["so_detail_id", "product_id"],
+        suffixes=("", "_direct_so")
+    )
+
+    # 6. COALESCE: Jika do_detail_id dari GRN kosong, isi dari Direct SO
+    for col_base in ["do_detail_id", "transaction_number_do", "Status_do"]:
+        col_direct = f"{col_base}_direct_so"
+        if col_direct in final_do_step.columns:
+            final_do_step[col_base] = final_do_step[col_base].fillna(final_do_step[col_direct])
+            final_do_step.drop(columns=[col_direct], inplace=True)
+
+    # Bersihkan kolom duplikat grn_detail_id dari direct_so jika ada
+    if "grn_detail_id_direct_so" in final_do_step.columns:
+        final_do_step.drop(columns=["grn_detail_id_direct_so"], inplace=True)
+
+    # 7. Join DO -> SI (Hanya jika do_detail_id ada)
+    final_merge = final_do_step.merge(
         df_si_subset[df_si_subset["do_detail_id"].notna()],
         how="left",
         on=["do_detail_id", "product_id"],
-        suffixes=("_grndo", "_si")
+        suffixes=("", "_si")
     )
 
+    # 8. Saring hanya SO yang valid
     final_merge = final_merge[
-    final_merge["so_detail_id"].notna() &
-    final_merge["transaction_number_so"].notna()
+        final_merge["so_detail_id"].notna() &
+        final_merge["transaction_number_so"].notna()
     ]
-
 
     # Pastikan kolom detail_id sudah ada di hasil merge
     # Misalnya: so_detail_id, pr_detail_id, po_detail_id, grn_detail_id, do_detail_id, si_detail_id
@@ -942,8 +960,6 @@ def main():
             # Misalnya df_final adalah hasil merge
             selected_columns = [
                 "so_detail_id",
-                "transaction_number_so", 
-                "Status_so", 
                 "pr_detail_id",
                 "transaction_number_pr",
                 "po_detail_id",
