@@ -842,35 +842,35 @@ def main():
 
 
     so_pr = df_so_subset.merge(
-        df_pr_subset,
+        df_pr_subset[df_pr_subset["so_detail_id"].notna()],
         how="left",
         on=["so_detail_id", "product_id"],
         suffixes=("_so", "_pr")
     )
 
     pr_po = so_pr.merge(
-        df_po_subset,
+        df_po_subset[df_po_subset["pr_detail_id"].notna()],
         how="left",
         on=["pr_detail_id", "product_id"],
         suffixes=("_sopr", "_po")
     )
 
     po_grn = pr_po.merge(
-        df_grn_subset,
+        df_grn_subset[df_grn_subset["po_detail_id"].notna()],
         how="left",
         on=["po_detail_id", "product_id"],
         suffixes=("_prpo", "_grn")
     )
 
     grn_do = po_grn.merge(
-        df_do_subset,
+        df_do_subset[df_do_subset["grn_detail_id"].notna()],
         how="left",
         on=["grn_detail_id", "product_id"],
         suffixes=("_pogrn", "_do")
     )
 
     final_merge = grn_do.merge(
-        df_si_subset,
+        df_si_subset[df_si_subset["do_detail_id"].notna()],
         how="left",
         on=["do_detail_id", "product_id"],
         suffixes=("_grndo", "_si")
