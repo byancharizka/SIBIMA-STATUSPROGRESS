@@ -836,7 +836,7 @@ def main():
 
 # Set Subset
     df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so", "product_id", "item_name"]]
-    df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr", "product_id"]]
+    df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr", "product_id", "PIC Procurement"]]
     df_po_subset = df_po_final_real[["pr_detail_id", "po_detail_id", "transaction_number_po", "Status_po", "product_id"]]
     df_grn_subset = df_grn_final_real[["po_detail_id", "grn_detail_id", "transaction_number_grn", "Status_grn", "product_id"]]
     df_do_subset = df_do_final_real[["so_detail_id", "grn_detail_id", "do_detail_id", "transaction_number_do", "Status_do", "product_id"]]
