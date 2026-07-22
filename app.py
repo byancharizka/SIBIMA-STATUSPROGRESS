@@ -442,7 +442,8 @@ def apply_search_filter(
     working = df.copy()
     working = normalize_text_columns(
         working,
-        ["Status", "PIC Procurement", "PIC Purchasing", "PIC", "No. PR", "No. DO", "No. PUR", "No. Transaksi"]
+        ["Status", "Status_so", "Status_pr", "Status_po", "Status_grn", "Status_do", "Status_si", 
+         "PIC Procurement", "PIC Purchasing", "PIC", "No. PR", "No. DO", "No. PUR", "No. Transaksi"]
     )
 
     # Filter nomor transaksi
@@ -456,14 +457,18 @@ def apply_search_filter(
             working = working[mask_number]
 
     # Filter status
-    if search_status and "Status" in working.columns:
-        working = working[
-            working["Status"].str.contains(search_status.strip(), case=False, na=False)
-        ]
+    if search_status:
+        pattern_status = search_status.strip().lower()
+        status_cols = [c for c in ["Status", "Status_so", "Status_pr", "Status_po", "Status_grn", "Status_do", "Status_si", "status_progres"] if c in working.columns]
+        if status_cols:
+            mask_status = working[status_cols].apply(
+                lambda col: col.str.lower().str.contains(pattern_status, na=False)
+            ).any(axis=1)
+            working = working[mask_status]
 
-    # Filter PIC via Dropdown (PERBAIKAN ADA DI SINI)
+    # Filter PIC Procurement via Dropdown
     if search_pic and search_pic != "Semua PIC":
-        pic_cols = [col for col in ["PIC Procurement", "PIC Purchasing", "PIC"] if col in working.columns]
+        pic_cols = [col for col in ["PIC Procurement", "item_pic_procurement_name", "PIC Purchasing", "PIC"] if col in working.columns]
         if pic_cols:
             mask_pic = working[pic_cols].apply(
                 lambda col: col.str.strip().str.lower() == search_pic.strip().lower()
@@ -936,7 +941,7 @@ def main():
 
     # Tambahkan kolom status_progres ke DataFrame final
     final_merge['status_progres'] = final_merge.apply(get_item_status, axis=1)
-
+    final_merge = apply_search_filter(final_merge, search_number, search_status, search_pic)
 
 
     # ---------- METRICS ----------
