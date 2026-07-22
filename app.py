@@ -434,7 +434,7 @@ def apply_search_filter(
     df: pd.DataFrame,
     search_number: str = "",
     search_status: str = "",
-    search_pic: str = ""
+    search_pic: str = "Semua PIC"  # Default ke 'Semua PIC'
 ) -> pd.DataFrame:
     if df.empty:
         return df.copy()
@@ -445,7 +445,7 @@ def apply_search_filter(
         ["Status", "PIC Procurement", "PIC Purchasing", "PIC", "No. PR", "No. DO", "No. PUR", "No. Transaksi"]
     )
 
-    # Filter nomor transaksi: mencari di semua kolom string
+    # Filter nomor transaksi
     if search_number:
         pattern = search_number.strip().lower()
         string_cols = working.select_dtypes(include=["object"]).columns.tolist()
@@ -461,17 +461,16 @@ def apply_search_filter(
             working["Status"].str.contains(search_status.strip(), case=False, na=False)
         ]
 
-    # Filter PIC -> OR logic, bukan AND
-    if search_pic:
+    # Filter PIC via Dropdown (PERBAIKAN ADA DI SINI)
+    if search_pic and search_pic != "Semua PIC":
         pic_cols = [col for col in ["PIC Procurement", "PIC Purchasing", "PIC"] if col in working.columns]
         if pic_cols:
             mask_pic = working[pic_cols].apply(
-                lambda col: col.str.contains(search_pic.strip(), case=False, na=False)
+                lambda col: col.str.strip().str.lower() == search_pic.strip().lower()
             ).any(axis=1)
             working = working[mask_pic]
 
     return working.copy()
-
 
 def assign_unassigned(df: pd.DataFrame, col: str) -> pd.DataFrame:
     working = df.copy()
@@ -579,8 +578,6 @@ def main():
     with col_head4:
         search_status = st.text_input("Cari Status 🔍", placeholder="Complete / In Progress / Approved / Need Approve")
 
-    with col_head5:
-        search_pic = st.text_input("Cari PIC 🔍", placeholder="PIC Procurement / PIC Purchasing / PIC PUR")
 
     # ---------- LOAD DATA ----------
     if isinstance(selected_date_range, (tuple, list)) and len(selected_date_range) == 2:
@@ -681,6 +678,26 @@ def main():
     #df_npr_final = safe_to_datetime(df_npr_final, "date_approved")
     #df_npr_final = safe_to_datetime(df_npr_final, "date_inprogress")
     #df_npr_final = safe_to_datetime(df_npr_final, "date_complete")
+
+
+    # ---------- EXTRACT UNIQUE PIC LIST ----------
+    # Ambil list PIC Procurement unik dari df_pr_final (dan dataframe lain jika perlu)
+    pic_list = []
+    if "PIC Procurement" in df_pr_final.columns:
+        pic_list = df_pr_final["PIC Procurement"].dropna().astype(str).str.strip()
+        pic_list = [pic for pic in pic_list.unique() if pic != "" and pic.lower() != "nan"]
+        pic_list.sort()
+
+    # Tambahkan opsi 'Semua PIC' di urutan pertama
+    pic_options = ["Semua PIC"] + pic_list
+
+    # ---------- TOP FILTERS (Tahap 2: Dropdown PIC) ----------
+    with col_head5:
+        search_pic = st.selectbox(
+            "Pilih PIC Procurement 👤",
+            options=pic_options,
+            index=0
+        )
 
     # ---------- DEFAULT SAFE COPY ----------
     df_pr_f = df_pr.copy()
