@@ -433,8 +433,8 @@ def apply_realization_filter(df: pd.DataFrame, start_date_val, end_date_val) -> 
 def apply_search_filter(
     df: pd.DataFrame,
     search_number: str = "",
-    search_status: str = "",
-    search_pic: str = "Semua PIC"  # Default ke 'Semua PIC'
+    search_status: str = "Semua Status",
+    search_pic: str = "Semua PIC"
 ) -> pd.DataFrame:
     if df.empty:
         return df.copy()
@@ -442,8 +442,7 @@ def apply_search_filter(
     working = df.copy()
     working = normalize_text_columns(
         working,
-        ["Status", "Status_so", "Status_pr", "Status_po", "Status_grn", "Status_do", "Status_si", 
-         "PIC Procurement", "PIC Purchasing", "PIC", "No. PR", "No. DO", "No. PUR", "No. Transaksi"]
+        ["Status", "Status_so", "PIC Procurement", "PIC Purchasing", "PIC", "No. PR", "No. DO", "No. PUR", "No. Transaksi"]
     )
 
     # Filter nomor transaksi
@@ -456,15 +455,12 @@ def apply_search_filter(
             ).any(axis=1)
             working = working[mask_number]
 
-    # Filter status
-    if search_status:
-        pattern_status = search_status.strip().lower()
-        status_cols = [c for c in ["Status", "Status_so", "Status_pr", "Status_po", "Status_grn", "Status_do", "Status_si", "status_progres"] if c in working.columns]
-        if status_cols:
-            mask_status = working[status_cols].apply(
-                lambda col: col.str.lower().str.contains(pattern_status, na=False)
-            ).any(axis=1)
-            working = working[mask_status]
+    # Filter Status khusus SO saja
+    if search_status and search_status != "Semua Status":
+        if "Status_so" in working.columns:
+            working = working[
+                working["Status_so"].str.strip().str.lower() == search_status.strip().lower()
+            ]
 
     # Filter PIC Procurement via Dropdown
     if search_pic and search_pic != "Semua PIC":
@@ -580,9 +576,6 @@ def main():
     with col_head3:
         search_number = st.text_input("Cari Nomor Transaksi 🔍", placeholder="No. PR / No. DO / No. NPR / No. PUR")
 
-    with col_head4:
-        search_status = st.text_input("Cari Status 🔍", placeholder="Complete / In Progress / Approved / Need Approve")
-
 
     # ---------- LOAD DATA ----------
     if isinstance(selected_date_range, (tuple, list)) and len(selected_date_range) == 2:
@@ -684,6 +677,22 @@ def main():
     #df_npr_final = safe_to_datetime(df_npr_final, "date_inprogress")
     #df_npr_final = safe_to_datetime(df_npr_final, "date_complete")
 
+    # ---------- EXTRACT UNIQUE STATUS LIST (KHUSUS SO) ----------
+    status_list = []
+    if "Status_so" in df_so_final.columns:
+        status_series = df_so_final["Status_so"].dropna().astype(str).str.strip()
+        status_list = [s for s in status_series.unique() if s != "" and s.lower() != "nan"]
+        status_list.sort()
+
+    status_options = ["Semua Status"] + status_list
+
+    # ---------- TOP FILTERS ----------
+    with col_head4:
+        search_status = st.selectbox(
+            "Pilih Status SO 🔍",
+            options=status_options,
+            index=0
+        )
 
     # ---------- EXTRACT UNIQUE PIC LIST ----------
     # Ambil list PIC Procurement unik dari df_pr_final (dan dataframe lain jika perlu)
