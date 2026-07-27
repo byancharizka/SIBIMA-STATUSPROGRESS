@@ -830,7 +830,7 @@ def main():
     # Konversi semua kolom ID menjadi integer murni
     for col in [
         "so_detail_id", "pr_detail_id", "po_detail_id",
-        "grn_detail_id", "do_detail_id", "product_id",
+        "grn_detail_id", "do_detail_id"
     ]:
         for df in [
             df_so_final_real, df_pr_final_real, df_po_final_real,
