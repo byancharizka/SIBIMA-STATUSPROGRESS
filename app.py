@@ -645,7 +645,8 @@ def main():
         "item_id": "do_detail_id",
         "item_grn_detail_id" : "grn_detail_id",
         "transaction_number" : "transaction_number_do",
-        "item_product_id" : "product_id"
+        "item_product_id" : "product_id",
+        "item_so_detail_id": "so_detail_id",
     })
     #SI
     df_si_final = df_si_final.rename(columns={
@@ -829,7 +830,7 @@ def main():
     # Konversi semua kolom ID menjadi integer murni
     for col in [
         "so_detail_id", "pr_detail_id", "po_detail_id",
-        "grn_detail_id", "do_detail_id"
+        "grn_detail_id", "do_detail_id", "product_id",
     ]:
         for df in [
             df_so_final_real, df_pr_final_real, df_po_final_real,
@@ -837,6 +838,9 @@ def main():
         ]:
             if col in df.columns:
                 df[col] = pd.to_numeric(df[col], errors="coerce").astype("Int64")
+
+
+    
 
 
 
