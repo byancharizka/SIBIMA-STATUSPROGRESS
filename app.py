@@ -1029,12 +1029,24 @@ def main():
             st.subheader("📊 Status Progres Per Item")
             st.dataframe(status_summary)
 
-            # Visualisasi bar chart
+            # ==========================================
+            # (CUSTOM COLOR MAP)
+            # ==========================================
+            color_map = {
+                '⏳ Belum diproses': '#EF5350', 
+                '📄 Masih di Purchase Request': "#ED9A93",                   
+                '📝 Sudah sampai Purchase Order': "#94C6EF",     
+                '📦 Sudah sampai Goods Receipt': "#1E88E5",   
+                '🚚 Sudah sampai Delivery Order': "#7DDFA9", 
+                '✅ Sudah sampai Sales Invoice': "#51B071"
+            }
+
             fig_status = px.bar(
                 status_summary,
                 x='Status Progres',
                 y='Jumlah Item',
                 color='Status Progres',
+                color_discrete_map=color_map,  # <-- Menghubungkan warna custom
                 title='Distribusi Status Item',
                 text='Jumlah Item'
             )
