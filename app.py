@@ -1062,6 +1062,7 @@ def main():
                 'lt_pr_to_po': '2. PR ➔ PO',
                 'lt_po_to_grn': '3. PO ➔ GRN',
                 'lt_grn_to_do': '4. GRN ➔ DO',
+                'lt_do_to_si': '5. DO ➔ SI'
             }
 
             # 2. Hitung Lead Time (dalam hari) untuk tiap tahapan
@@ -1075,8 +1076,10 @@ def main():
                 final_merge['transaction_date_grn'] - final_merge['transaction_date_po']
             ).dt.days
             final_merge['lt_grn_to_do'] = (
-                final_merge['transaction_date_do']
-                - final_merge['transaction_date_grn']
+                final_merge['transaction_date_do'] - final_merge['transaction_date_grn']
+            ).dt.days
+            final_merge['lt_do_to_si'] = (
+                final_merge['transaction_date_si'] - final_merge['transaction_date_do']
             ).dt.days
             final_merge['lt_total_so_to_si'] = (
                 final_merge['transaction_date_si'] - final_merge['transaction_date_so']
@@ -1094,6 +1097,7 @@ def main():
                     'lt_pr_to_po',
                     'lt_po_to_grn',
                     'lt_grn_to_do',
+                    'lt_do_to_si',
                 ]]
                 .mean()
                 .reset_index()
