@@ -1052,7 +1052,7 @@ def main():
             st.plotly_chart(fig_status, use_container_width=True)
 
             #Funnel Chart (Konversi & Drop-off Dokumen)
-            fig_funnel = px.funnel(funnel_data, x="Jumlah Item", y="Tahap", title="Funnel Konversi Dokumen")
+            fig_funnel = px.funnel(funnel_data, x="Jumlah Item", y="Tahap", title="🔻Funnel Konversi Item")
             st.plotly_chart(fig_funnel, use_container_width=True)
 
             # CALCULATE LEAD TIME & TREND
@@ -1114,7 +1114,7 @@ def main():
                 y='Rata_Rata_Hari',
                 color='Tahapan',
                 markers=True,
-                title='<b>Tren Rata-Rata Lead Time per Bulan</b>',
+                title='<b>📈 Tren Rata-Rata Lead Time per Bulan</b>',
                 labels={
                     'periode_so': 'Bulan Transaksi SO',
                     'Rata_Rata_Hari': 'Rata-Rata Durasi (Hari)',
