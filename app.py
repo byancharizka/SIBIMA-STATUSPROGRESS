@@ -484,73 +484,6 @@ def assign_unassigned(df: pd.DataFrame, col: str) -> pd.DataFrame:
     return working
 
 
-def get_top_pic(df: pd.DataFrame, pic_col: str, doc_col: str) -> str:
-    if df.empty or pic_col not in df.columns or doc_col not in df.columns or "Status" not in df.columns:
-        return "Tidak ada"
-
-    working = assign_unassigned(df, pic_col)
-    working = working[working[pic_col] != "Unassigned"]
-
-    if working.empty:
-        return "Tidak ada"
-
-    # 🔹 Urutan prioritas status (semakin tinggi nilainya, semakin pending)
-    status_priority = {
-        "Need Approve": 4,
-        "Approved": 3,
-        "In Progress": 2,
-        "Complete": 1
-    }
-
-    working["Status_Score"] = working["Status"].map(status_priority).fillna(0)
-
-    summary = (
-        working.groupby(pic_col)
-        .agg(
-            Total_Doc=(doc_col, "nunique"),
-            Avg_Status_Score=("Status_Score", "mean")
-        )
-        .reset_index()
-    )
-
-    # 🔹 Urutkan berdasarkan jumlah dokumen dan tingkat pending (semakin tinggi skor, semakin pending)
-    summary = summary.sort_values(["Total_Doc", "Avg_Status_Score"], ascending=[False, False])
-
-    return summary.iloc[0][pic_col] if not summary.empty else "Tidak ada"
-
-
-def summarize_status(df: pd.DataFrame, doc_col: str, nominal_col: str = "Nominal") -> pd.DataFrame:
-    if df.empty or "Status" not in df.columns:
-        return pd.DataFrame(columns=["Status", "Total_Doc", "Total_Amount"])
-
-    working = df.copy()
-    working = ensure_columns(working, [doc_col, nominal_col, "Status"])
-    working = safe_to_numeric(working, [nominal_col])
-
-    summary = (
-        working.groupby("Status", dropna=False)
-        .agg(
-            Total_Doc=(doc_col, "nunique"),
-            Total_Amount=(nominal_col, "sum")
-        )
-        .reset_index()
-    )
-    return summary
-
-def summarize_pic_status(df: pd.DataFrame, pic_col: str, doc_col: str) -> pd.DataFrame:
-    if df.empty or pic_col not in df.columns or "Status" not in df.columns or doc_col not in df.columns:
-        return pd.DataFrame(columns=[pic_col, "Status", "Jumlah_Doc"])
-
-    working = assign_unassigned(df, pic_col)
-
-    summary = (
-        working.groupby([pic_col, "Status"], dropna=False)
-        .agg(Jumlah_Doc=(doc_col, "nunique"))
-        .reset_index()
-        .sort_values(by="Jumlah_Doc", ascending=False)
-    )
-    return summary
-
 
 # =========================================================
 # 9) MAIN APP
@@ -869,7 +802,7 @@ def main():
     ]].rename(columns={"transaction_date": "transaction_date_po"})
 
     df_grn_subset = df_grn_final_real[[
-        "po_detail_id", "grn_detail_id", "transaction_number_grn", "transaction_date", "Status_grn", "product_id"
+        "po_detail_id", "grn_detail_id", "transaction_number_grn", "transaction_date", "Status_grn", "product_id", "vendor_name"
     ]].rename(columns={"transaction_date": "transaction_date_grn"})
 
     df_do_subset = df_do_final_real[[
@@ -1052,7 +985,7 @@ def main():
             st.plotly_chart(fig_status, use_container_width=True)
 
             #Funnel Chart (Konversi & Drop-off Dokumen)
-            fig_funnel = px.funnel(funnel_data, x="Jumlah Item", y="Tahap", title="🔻Funnel Konversi Item")
+            fig_funnel = px.funnel(funnel_data, x="Jumlah Item", y="Tahap", title="⏳Funnel Konversi Item")
             st.plotly_chart(fig_funnel, use_container_width=True)
 
             # CALCULATE LEAD TIME & TREND
@@ -1118,7 +1051,7 @@ def main():
                 y='Rata_Rata_Hari',
                 color='Tahapan',
                 markers=True,
-                title='<b>📈 Tren Rata-Rata Lead Time per Bulan</b>',
+                title='<b>⏳Tren Rata-Rata Lead Time per Bulan</b>',
                 labels={
                     'periode_so': 'Bulan Transaksi SO',
                     'Rata_Rata_Hari': 'Rata-Rata Durasi (Hari)',
@@ -1127,6 +1060,79 @@ def main():
 
             fig_line.update_layout(height=400)
             st.plotly_chart(fig_line, use_container_width=True)
+
+
+            # VENDOR PERFORMANCE ANALYSIS
+            # =====================================================
+            st.subheader("🏭 Analisis Kinerja Vendor / Supplier")
+
+            if "vendor_name" in final_merge.columns:
+                col_vendor = "vendor_name"
+
+                # Filter hanya item yang memiliki nilai Lead Time PO ➔ GRN
+                df_vendor = final_merge[
+                    final_merge["lt_po_to_grn"].notna()
+                    & final_merge[col_vendor].notna()
+                ].copy()
+
+                if not df_vendor.empty:
+                    vendor_summary = (
+                        df_vendor.groupby(col_vendor)
+                        .agg(
+                            Total_Item=("grn_detail_id", "count"),
+                            Avg_Lead_Time_GRN=("lt_po_to_grn", "mean"),
+                        )
+                        .reset_index()
+                        .sort_values(by="Avg_Lead_Time_GRN", ascending=False)
+                        .head(10)  # Top 10 Vendor Terlambat
+                    )
+                    vendor_summary["Avg_Lead_Time_GRN"] = vendor_summary[
+                        "Avg_Lead_Time_GRN"
+                    ].round(1)
+
+                    c1, c2 = st.columns(2)
+                    with c1:
+                        fig_vendor_lt = px.bar(
+                            vendor_summary,
+                            x="Avg_Lead_Time_GRN",
+                            y=col_vendor,
+                            orientation="h",
+                            color="Avg_Lead_Time_GRN",
+                            color_continuous_scale="Reds",
+                            title="<b>⏱️ Top 10 Vendor dengan Lead Time PO ➔ GRN Terlama (Hari)</b>",
+                            text="Avg_Lead_Time_GRN",
+                            labels={
+                                "Avg_Lead_Time_GRN": "Rata-Rata Lead Time (Hari)",
+                                col_vendor: "Nama Vendor",
+                            },
+                        )
+                        fig_vendor_lt.update_layout(
+                            yaxis={"categoryorder": "total ascending"},
+                            showlegend=False,
+                        )
+                        st.plotly_chart(
+                            fig_vendor_lt, use_container_width=True
+                        )
+
+                    with c2:
+                        fig_vendor_vol = px.pie(
+                            vendor_summary,
+                            values="Total_Item",
+                            names=col_vendor,
+                            title="<b>📦 Porsi Volume Item per Top Vendor</b>",
+                            hole=0.4,
+                        )
+                        st.plotly_chart(
+                            fig_vendor_vol, use_container_width=True
+                        )
+                else:
+                    st.info(
+                        "ℹ️ Belum ada transaksi yang memiliki data vendor pada periode ini."
+                    )
+            else:
+                st.warning(
+                    "⚠️ Kolom 'vendor_name' belum dimasukkan ke dalam df_grn_subset."
+                )
 
     # ---------- FOOTER INFO ----------
     with st.expander("ℹ️ Informasi Teknis Dashboard"):
