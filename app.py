@@ -984,6 +984,43 @@ def main():
             fig_status.update_traces(textposition='outside')
             st.plotly_chart(fig_status, use_container_width=True)
 
+            # =========================================================
+        # 📌 ANALISIS SALES PIPELINE (CONVERSION & LOSS/FUNNEL RATE)
+        # =========================================================
+            st.subheader("📉 Analisis Sales Pipeline (Conversion & Loss/Funnel Rate)")
+
+            # 1. Hitung Unik Item per Tahap dari Data Final Merge
+            total_so = final_merge["so_detail_id"].nunique() if "so_detail_id" in final_merge.columns else 0
+            total_pr = final_merge["pr_detail_id"].nunique() if "pr_detail_id" in final_merge.columns else 0
+            total_po = final_merge["po_detail_id"].nunique() if "po_detail_id" in final_merge.columns else 0
+            total_grn = final_merge["grn_detail_id"].nunique() if "grn_detail_id" in final_merge.columns else 0
+            total_do = final_merge["do_detail_id"].nunique() if "do_detail_id" in final_merge.columns else 0
+            total_si = final_merge["si_detail_id"].nunique() if "si_detail_id" in final_merge.columns else 0
+
+            if total_so > 0:
+                # Kategori Jalur Pemenuhan
+                so_with_pr = final_merge[final_merge["pr_detail_id"].notna()]["so_detail_id"].nunique()
+                so_direct_do = final_merge[final_merge["pr_detail_id"].isna() & final_merge["do_detail_id"].notna()]["so_detail_id"].nunique()
+
+                # Kalkulasi Rate
+                conv_so_to_do = (total_do / total_so) * 100
+                conv_do_to_si = (total_si / total_do) * 100 if total_do > 0 else 0
+                overall_conversion = (total_si / total_so) * 100
+                loss_so_to_do = 100 - conv_so_to_do
+
+                # 2. Ringkasan Metrik Utama
+                m1, m2, m3, m4 = st.columns(4)
+                with m1:
+                    metric_card("Total Item SO", f"{total_so:,} Item")
+                with m2:
+                    metric_card("Konversi SO ➔ DO", f"{conv_so_to_do:.1f}%")
+                with m3:
+                    metric_card("Konversi DO ➔ SI", f"{conv_do_to_si:.1f}%")
+                with m4:
+                    metric_card("Overall Conversion (SO ➔ SI)", f"{overall_conversion:.1f}%")
+
+                st.markdown("---")
+
             #Funnel Chart (Konversi & Drop-off Dokumen)
             fig_funnel = px.funnel(funnel_data, x="Jumlah Item", y="Tahap", title="⏳Funnel Konversi Item")
             st.plotly_chart(fig_funnel, use_container_width=True)
@@ -1079,7 +1116,7 @@ def main():
                     vendor_summary = (
                         df_vendor.groupby(col_vendor)
                         .agg(
-                            Total_Item=("grn_detail_id", "count"),
+                            Total_Dokumen=("grn_detail_id", "count"),
                             Avg_Lead_Time_GRN=("lt_po_to_grn", "mean"),
                         )
                         .reset_index()
@@ -1117,9 +1154,9 @@ def main():
                     with c2:
                         fig_vendor_vol = px.pie(
                             vendor_summary,
-                            values="Total_Item",
+                            values="Total_Dokumen",
                             names=col_vendor,
-                            title="<b>📦 Porsi Volume Item per Top Vendor</b>",
+                            title="<b>📦 Porsi Volume Dokumen per Top Vendor</b>",
                             hole=0.4,
                         )
                         st.plotly_chart(
