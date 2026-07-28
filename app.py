@@ -984,13 +984,17 @@ def main():
             fig_status.update_traces(textposition='outside')
             st.plotly_chart(fig_status, use_container_width=True)
 
-            # =========================================================
+
         # 📌 ANALISIS SALES PIPELINE (CONVERSION & LOSS/FUNNEL RATE)
         # =========================================================
             st.subheader("📉 Analisis Sales Pipeline (Conversion & Loss/Funnel Rate)")
 
             # 1. Hitung Unik Item per Tahap dari Data Final Merge
             total_so = final_merge["so_detail_id"].nunique() if "so_detail_id" in final_merge.columns else 0
+            
+            # 💡 TAMBAHAN: Hitung Total Dokumen/Transaksi SO Unik
+            total_so_doc = final_merge["transaction_number_so"].nunique() if "transaction_number_so" in final_merge.columns else 0
+            
             total_pr = final_merge["pr_detail_id"].nunique() if "pr_detail_id" in final_merge.columns else 0
             total_po = final_merge["po_detail_id"].nunique() if "po_detail_id" in final_merge.columns else 0
             total_grn = final_merge["grn_detail_id"].nunique() if "grn_detail_id" in final_merge.columns else 0
@@ -1008,8 +1012,10 @@ def main():
                 overall_conversion = (total_si / total_so) * 100
                 loss_so_to_do = 100 - conv_so_to_do
 
-                # 2. Ringkasan Metrik Utama
-                m1, m2, m3, m4 = st.columns(4)
+                # 2. Ringkasan Metrik Utama (Diubah jadi 5 Kolom)
+                m0, m1, m2, m3, m4 = st.columns(5)
+                with m0:
+                    metric_card("Total Dokumen SO", f"{total_so_doc:,} Dokumen") # 👈 Metrik baru
                 with m1:
                     metric_card("Total Item SO", f"{total_so:,} Item")
                 with m2:
