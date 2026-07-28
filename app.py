@@ -855,22 +855,32 @@ def main():
     #final_merge = grn_do.merge(df_si_final_real, left_on='do_detail_id', right_on='do_detail_id', how='outer')
 
 
-# Set Subset
-    df_so_subset = df_so_final_real[["so_detail_id", "transaction_number_so", "Status_so", "product_id", "item_name"]]
-    df_pr_subset = df_pr_final_real[["so_detail_id", "pr_detail_id", "transaction_number_pr", "Status_pr", "product_id", "PIC Procurement"]]
-    df_po_subset = df_po_final_real[["pr_detail_id", "po_detail_id", "transaction_number_po", "Status_po", "product_id"]]
-    df_grn_subset = df_grn_final_real[["po_detail_id", "grn_detail_id", "transaction_number_grn", "Status_grn", "product_id"]]
-    df_do_subset = df_do_final_real[["so_detail_id", "grn_detail_id", "do_detail_id", "transaction_number_do", "Status_do", "product_id"]]
-    df_si_subset = df_si_final_real[["do_detail_id", "si_detail_id", "transaction_number_si", "Status_si", "product_id"]]
+    # Set Subset (Sertakan transaction_date dan beri nama yang spesifik)
+    df_so_subset = df_so_final_real[[
+        "so_detail_id", "transaction_number_so", "transaction_date", "Status_so", "product_id", "item_name"
+    ]].rename(columns={"transaction_date": "transaction_date_so"})
+
+    df_pr_subset = df_pr_final_real[[
+        "so_detail_id", "pr_detail_id", "transaction_number_pr", "transaction_date", "Status_pr", "product_id", "PIC Procurement"
+    ]].rename(columns={"transaction_date": "transaction_date_pr"})
+
+    df_po_subset = df_po_final_real[[
+        "pr_detail_id", "po_detail_id", "transaction_number_po", "transaction_date", "Status_po", "product_id"
+    ]].rename(columns={"transaction_date": "transaction_date_po"})
+
+    df_grn_subset = df_grn_final_real[[
+        "po_detail_id", "grn_detail_id", "transaction_number_grn", "transaction_date", "Status_grn", "product_id"
+    ]].rename(columns={"transaction_date": "transaction_date_grn"})
+
+    df_do_subset = df_do_final_real[[
+        "so_detail_id", "grn_detail_id", "do_detail_id", "transaction_number_do", "transaction_date", "Status_do", "product_id"
+    ]].rename(columns={"transaction_date": "transaction_date_do"})
+
+    df_si_subset = df_si_final_real[[
+        "do_detail_id", "si_detail_id", "transaction_number_si", "transaction_date", "Status_si", "product_id"
+    ]].rename(columns={"transaction_date": "transaction_date_si"})
 
     # 1. Merge SO ke PR
-    # Dibuang kolom so_detail_id di df_pr_subset agar TIDAK menimbulkan bentrok suffix (_so / _pr)
-    pr_clean = df_pr_subset[df_pr_subset["so_detail_id"].notna()].drop(columns=["so_detail_id"], errors="ignore")
-    so_pr = df_so_subset.merge(
-        pr_clean,
-        how="left",
-        on=["product_id"], # atau bisa pakai left_on/right_on jika tanpa drop
-    )
     # Agar lebih presisi, kita gunakan merge berbasis so_detail_id & product_id
     so_pr = df_so_subset.merge(
         df_pr_subset[df_pr_subset["so_detail_id"].notna()],
@@ -914,7 +924,7 @@ def main():
     )
 
     # 6. COALESCE: Jika do_detail_id dari GRN kosong, isi dari Direct SO
-    for col_base in ["do_detail_id", "transaction_number_do", "Status_do"]:
+    for col_base in ["do_detail_id", "transaction_number_do", "Status_do", "transaction_date_do"]:
         col_direct = f"{col_base}_direct_so"
         if col_direct in final_do_step.columns:
             final_do_step[col_base] = final_do_step[col_base].fillna(final_do_step[col_direct])
@@ -959,33 +969,18 @@ def main():
     final_merge['status_progres'] = final_merge.apply(get_item_status, axis=1)
     final_merge = apply_search_filter(final_merge, search_number, search_status, search_pic)
 
-
-    # ---------- METRICS ----------
-    total_pr_unpr = safe_sum(df_pr_f, "Nominal")
-    total_po_unpr = safe_sum(df_po_f, "Nominal")
-    total_grn_unpr = safe_sum(df_grn_f, "Nominal")
-    total_do_unpr = safe_sum(df_do_f, "Nominal")
-    #total_pr = safe_sum(df_pr_final_real, "transaction_total")
-
-    df_pr_final_real = normalize_text_columns(df_pr_final_real, ["item_PIC_Procurement"])
-    df_do_final_real = normalize_text_columns(df_do_final_real, ["item_PIC_Procurement"])
-
-
-
-    #df_npr_final_real["disc_per_unit"] = df_npr_final_real["item_price"] * (df_npr_final_real["item_discount"] / 100)
-    #df_npr_final_real["tax_unit"] = (df_npr_final_real["item_price"] - df_npr_final_real["disc_per_unit"]) * (df_npr_final_real["item_tax1_percentage"] / 100)
-    #df_npr_final_real["net_price_unit"] = df_npr_final_real["item_price"] - df_npr_final_real["disc_per_unit"] + df_npr_final_real["tax_unit"]
-    #df_npr_final_real["total_pr_row"] = df_npr_final_real["item_quantity"] * df_npr_final_real["net_price_unit"]
-    #total_npr = df_npr_final_real["total_pr_row"].sum()
-
-    #df_do_final_real["disc_per_unit"] = df_do_final_real["item_price"] * (df_do_final_real["item_discount"] / 100)
-    #df_do_final_real["tax_unit"] = (df_do_final_real["item_price"] - df_do_final_real["disc_per_unit"]) * (df_do_final_real["item_tax1_percentage"] / 100)
-    #df_do_final_real["tax_unit"] = df_do_final_real["item_tax1_value"] + df_do_final_real["item_tax1_value"]
-    #df_do_final_real["net_price_unit"] = df_do_final_real["item_price"] - df_do_final_real["disc_per_unit"] + df_do_final_real["tax_unit"]
-    #df_do_final_real["net_price_unit"] = df_do_final_real["item_price"] - df_do_final_real["disc_per_unit"]
-    #df_do_final_real["total_do_row"] = df_do_final_real["item_quantity"] * df_do_final_real["net_price_unit"]
-
-
+    # Contoh implementasi cepat:
+    funnel_data = pd.DataFrame({
+        "Tahap": ["SO", "PR", "PO", "GRN", "DO", "SI"],
+        "Jumlah Item": [
+            final_merge["so_detail_id"].nunique(),
+            final_merge["pr_detail_id"].nunique(),
+            final_merge["po_detail_id"].nunique(),
+            final_merge["grn_detail_id"].nunique(),
+            final_merge["do_detail_id"].nunique(),
+            final_merge["si_detail_id"].nunique()
+        ]
+    })
     # =====================================================
     # STATUS PROGRESS
     # =====================================================
@@ -1055,6 +1050,79 @@ def main():
             )
             fig_status.update_traces(textposition='outside')
             st.plotly_chart(fig_status, use_container_width=True)
+
+            #Funnel Chart (Konversi & Drop-off Dokumen)
+            fig_funnel = px.funnel(funnel_data, x="Jumlah Item", y="Tahap", title="Funnel Konversi Dokumen")
+            st.plotly_chart(fig_funnel, use_container_width=True)
+
+            # CALCULATE LEAD TIME & TREND
+            # 1. Definisikan mapping nama tahapan LEBIH AWAL
+            tahap_map = {
+                'lt_so_to_pr': '1. SO ➔ PR',
+                'lt_pr_to_po': '2. PR ➔ PO',
+                'lt_po_to_grn': '3. PO ➔ GRN',
+                'lt_grn_to_do': '4. GRN ➔ DO',
+            }
+
+            # 2. Hitung Lead Time (dalam hari) untuk tiap tahapan
+            final_merge['lt_so_to_pr'] = (
+                final_merge['transaction_date_pr'] - final_merge['transaction_date_so']
+            ).dt.days
+            final_merge['lt_pr_to_po'] = (
+                final_merge['transaction_date_po'] - final_merge['transaction_date_pr']
+            ).dt.days
+            final_merge['lt_po_to_grn'] = (
+                final_merge['transaction_date_grn'] - final_merge['transaction_date_po']
+            ).dt.days
+            final_merge['lt_grn_to_do'] = (
+                final_merge['transaction_date_do']
+                - final_merge['transaction_date_grn']
+            ).dt.days
+            final_merge['lt_total_so_to_si'] = (
+                final_merge['transaction_date_si'] - final_merge['transaction_date_so']
+            ).dt.days
+
+            # 3. Periode bulanan berdasarkan tanggal SO
+            final_merge['periode_so'] = (
+                final_merge['transaction_date_so'].dt.to_period('M').astype(str)
+            )
+
+            # 4. Groupby rata-rata durasi per bulan
+            df_trend_lt = (
+                final_merge.groupby('periode_so')[[
+                    'lt_so_to_pr',
+                    'lt_pr_to_po',
+                    'lt_po_to_grn',
+                    'lt_grn_to_do',
+                ]]
+                .mean()
+                .reset_index()
+            )
+
+            # 5. Unpivot (melt) dan petakan nama tahapan
+            df_trend_melted = df_trend_lt.melt(
+                id_vars=['periode_so'],
+                var_name='Tahapan',
+                value_name='Rata_Rata_Hari',
+            )
+            df_trend_melted['Tahapan'] = df_trend_melted['Tahapan'].map(tahap_map)
+
+            # 6. Buat Line Chart Plotly
+            fig_line = px.line(
+                df_trend_melted,
+                x='periode_so',
+                y='Rata_Rata_Hari',
+                color='Tahapan',
+                markers=True,
+                title='<b>Tren Rata-Rata Lead Time per Bulan</b>',
+                labels={
+                    'periode_so': 'Bulan Transaksi SO',
+                    'Rata_Rata_Hari': 'Rata-Rata Durasi (Hari)',
+                },
+            )
+
+            fig_line.update_layout(height=400)
+            st.plotly_chart(fig_line, use_container_width=True)
 
     # ---------- FOOTER INFO ----------
     with st.expander("ℹ️ Informasi Teknis Dashboard"):
